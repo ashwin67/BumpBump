@@ -1,0 +1,26 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".Main" >
+
+    <Button
+        android:id="@+id/EventButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/EventButton"
+        android:minHeight="200dp"
+        android:minWidth="200dp"
+        android:text="Tap for Event" />
+
+    <com.ashwinupadhyaya.bumpbump.CLogView
+        android:id="@+id/DLtv1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/EventButton"
+        android:background="#303030"
+        android:scrollbars="vertical" />
+
+</RelativeLayout>

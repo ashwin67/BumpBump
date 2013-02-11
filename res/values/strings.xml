@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Bump Bump</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="menu_settings">Settings</string>
+    <string name="menu_about">About</string>
+    <string name="title_activity_about">About</string>
+    <string name="about_text">Bump Bump - A road condition indicator brought to you by www.ashwinupadhyaya.com</string>
+    <string name="menu_developer">Developer View</string>
+    <string name="title_activity_developer">Developer View</string>
+
+</resources>

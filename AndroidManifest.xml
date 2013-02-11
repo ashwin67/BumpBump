@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.ashwinupadhyaya.bumpbump"
+    android:versionCode="1"
+    android:versionName="1.0"  >
+    
+    <uses-sdk
+        android:minSdkVersion="11"
+        android:targetSdkVersion="16" />
+
+    <application
+        android:allowBackup="true"
+        android:debuggable="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/AppTheme" >
+        <activity
+            android:name="com.ashwinupadhyaya.bumpbump.Main"
+            android:label="@string/app_name" 
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name="com.ashwinupadhyaya.bumpbump.About"
+            android:label="@string/title_activity_about"
+            android:parentActivityName="com.ashwinupadhyaya.bumpbump.Main" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.ashwinupadhyaya.bumpbump.Main" />
+        </activity>
+        <activity
+            android:name="com.ashwinupadhyaya.bumpbump.Developer"
+            android:label="@string/title_activity_developer" >
+        </activity>
+    </application>
+    <uses-feature android:name="android.hardware.location" android:required="false" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+    <uses-feature android:name="android.hardware.sensor.accelerometer" android:required="false"/>
+    <uses-feature android:name="android.hardware.sensor.barometer" android:required="false"/>
+    <uses-feature android:name="android.hardware.sensor.compass" android:required="false"/>
+    <uses-feature android:name="android.hardware.sensor.gyroscope" android:required="false"/>
+    <uses-feature android:name="android.hardware.sensor.light" android:required="false"/>
+    <uses-feature android:name="android.hardware.sensor.proximity" android:required="false"/>
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+</manifest>
