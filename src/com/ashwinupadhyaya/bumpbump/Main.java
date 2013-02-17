@@ -47,7 +47,7 @@ public class Main extends Activity implements OnClickListener, SensorEventListen
 
 		//Get the names of all sources
 		mSenStates = new CSensorStates(lSenMan.getSensorList(Sensor.TYPE_ALL));
-		mSenStates.setRate(SensorManager.SENSOR_DELAY_FASTEST);	//Set the sensor rate to the maximum (default is UI)
+		mSenStates.setRate(SensorManager.SENSOR_DELAY_GAME);	//Set the sensor rate to the maximum (default is UI)
 		CSensorStates lSenStates=mSenStates;
 		
 		fout = new DataOutputStream[lSenStates.getNumAct() + 1]; // One extra for event file

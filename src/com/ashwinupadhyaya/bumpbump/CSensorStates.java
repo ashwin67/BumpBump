@@ -94,7 +94,7 @@ public class CSensorStates  implements Parcelable {
 				// Following is a deviation from the datamonitor project
 				// Here we explicitly set/reset the sensors
 				//act_list[i]=false;
-				rates[i]=SensorManager.SENSOR_DELAY_FASTEST;
+				rates[i]=SensorManager.SENSOR_DELAY_GAME;
 			}
 			setNamesByAct();
 		}
