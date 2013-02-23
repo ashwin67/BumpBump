@@ -8,9 +8,15 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
+
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -22,10 +28,16 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 
-public class Main extends Activity implements OnClickListener, SensorEventListener{
+public class Main extends Activity implements OnClickListener, SensorEventListener, LocationListener{
 
 	CSensorStates mSenStates;
+	CLocProvStates mLPStates;
+	
 	SensorManager mSenMan;
+	LocationManager mLocMan;
+
+	static int numSensors = 0;
+	
 	CLogView mLV;
 	int evno=0;
 	
@@ -44,13 +56,19 @@ public class Main extends Activity implements OnClickListener, SensorEventListen
 		
 		SensorManager lSenMan=(SensorManager) getSystemService(SENSOR_SERVICE);
 		mSenMan=lSenMan;
+		LocationManager lLocMan=(LocationManager) getSystemService(Context.LOCATION_SERVICE);
+		mLocMan=lLocMan;
 
 		//Get the names of all sources
 		mSenStates = new CSensorStates(lSenMan.getSensorList(Sensor.TYPE_ALL));
 		mSenStates.setRate(SensorManager.SENSOR_DELAY_GAME);	//Set the sensor rate to the maximum (default is UI)
 		CSensorStates lSenStates=mSenStates;
-		
-		fout = new DataOutputStream[lSenStates.getNumAct() + 1]; // One extra for event file
+
+		mLPStates = new CLocProvStates(lLocMan.getAllProviders());
+		CLocProvStates lLPStates=mLPStates;
+
+		numSensors = lSenStates.getNumAct();
+		fout = new DataOutputStream[numSensors + 2]; // One extra for event file. One more for location
 		
 		mbtn_event = (Button) findViewById(R.id.EventButton);
 		mbtn_event.setOnClickListener(this);
@@ -104,6 +122,8 @@ public class Main extends Activity implements OnClickListener, SensorEventListen
 		CSensorStates lSenStates=mSenStates;
 		DataOutputStream[] lfout=fout;
 		SensorManager lSenMan=mSenMan;
+		CLocProvStates lLPStates=mLPStates;
+		LocationManager lLocMan=mLocMan;
 		
 		//Register the sensors
 		if (lfout[0]!=null) {
@@ -111,7 +131,14 @@ public class Main extends Activity implements OnClickListener, SensorEventListen
 				if (lSenStates.getActive(i))
 					lSenMan.registerListener(this, lSenMan.getDefaultSensor(lSenStates.getType(i)), lSenStates.getRate(i));
 			}
+
+			//Register listeners for active location providers
+			for (int i=0;i<lLPStates.getNum();i++) {
+				if (lLPStates.getActive(i))
+					lLocMan.requestLocationUpdates(lLPStates.getName(i), lLPStates.getMinTime(i), lLPStates.getMinDist(i), this);
+			}
 		}
+
 	}
 
 	private void open_files() throws FileNotFoundException{
@@ -122,12 +149,13 @@ public class Main extends Activity implements OnClickListener, SensorEventListen
 		
 				
 		//Open the files and register the listeners
-		if (lSenStates.getNumAct()>0) {
-			for (int i=0;i<lSenStates.getNumAct();i++)
+		if (numSensors>0) {
+			for (int i=0;i<numSensors;i++)
 			{
 				lfout[i]=new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file_location("_" + lSenStates.getActName(i) + ".txt"))));
 			}
-			lfout[lSenStates.getNumAct()] = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file_location("_" + "KeyEvent.txt"))));
+			lfout[numSensors] = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file_location("_" + "KeyEvent.txt"))));
+			lfout[numSensors+1] = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file_location("_" + "Location.txt"))));
 		}
 	}
 
@@ -161,9 +189,8 @@ public class Main extends Activity implements OnClickListener, SensorEventListen
 	
 	private void close_files() {
 		DataOutputStream[] lfout=fout;
-		CSensorStates lSenStates = mSenStates;
 		
-		for (int i=0;i<=lSenStates.getNumAct();i++) {
+		for (int i=0;i<(numSensors+2);i++) {
 			if (lfout[i]!=null)
 				try {
 					lfout[i].close();
@@ -180,7 +207,6 @@ public class Main extends Activity implements OnClickListener, SensorEventListen
 
 	@Override
 	protected void onDestroy() {
-		// TODO Auto-generated method stub
 		super.onDestroy();
 		close_files();
 	}
@@ -216,8 +242,7 @@ public class Main extends Activity implements OnClickListener, SensorEventListen
 
 	@Override
 	public void onClick(View arg0) {
-		CSensorStates lSenStates = mSenStates;
-		DataOutputStream file=fout[lSenStates.getNumAct()];
+		DataOutputStream file=fout[numSensors];
 		
 		if (arg0.getId()==R.id.EventButton) { //Put an event marker
 			if(evno == 0)
@@ -232,7 +257,7 @@ public class Main extends Activity implements OnClickListener, SensorEventListen
 					stop_recording();
 				}
 				
-				file=fout[lSenStates.getNumAct()];
+				file=fout[numSensors];
 				
 				if (file!=null) {
 					String str = "";
@@ -261,6 +286,38 @@ public class Main extends Activity implements OnClickListener, SensorEventListen
 			//mLV.addtext("Event No:"+ evno +" Time :" + (System.currentTimeMillis()-RefTime));
 			evno++; 
 		}
+	}
+
+	/////////Location provider callbacks
+	public void onLocationChanged(Location loc) {
+		DataOutputStream file=fout[numSensors+1];
+		if (file==null)
+			//Something is wrong
+			return;
+		long tim=System.currentTimeMillis() - RefTime;
+		int typ=loc.getProvider().length();		//Seems a good identifier
+		String str = "";
+		try {
+			str = str + typ + "\t" + tim + "\t" + loc.getTime() + 
+					"\t" + loc.getAccuracy() + "\t" + loc.getAltitude() +
+					"\t" + loc.getLatitude() + "\t" + loc.getLongitude() + 
+					"\t" + loc.getBearing() + "\t" + loc.getSpeed();
+			file.writeBytes(str + "\n");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void onProviderDisabled(String arg0) {
+		mLV.addtext(arg0 + " provider disabled");
+	}
+
+	public void onProviderEnabled(String arg0) {
+		mLV.addtext(arg0 + " provider enabled");
+	}
+
+	public void onStatusChanged(String arg0, int arg1, Bundle arg2) {
+		mLV.addtext(arg0 + " status changed :" + arg1);
 	}
 
 }
