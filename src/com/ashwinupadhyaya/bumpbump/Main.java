@@ -10,6 +10,9 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 
+import android.location.GpsStatus.Listener;
+import android.location.GpsSatellite;
+import android.location.GpsStatus;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -28,7 +31,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 
-public class Main extends Activity implements OnClickListener, SensorEventListener, LocationListener{
+public class Main extends Activity implements OnClickListener, SensorEventListener, LocationListener, Listener{
 
 	CSensorStates mSenStates;
 	CLocProvStates mLPStates;
@@ -67,8 +70,9 @@ public class Main extends Activity implements OnClickListener, SensorEventListen
 		mLPStates = new CLocProvStates(lLocMan.getAllProviders());
 		CLocProvStates lLPStates=mLPStates;
 
+		
 		numSensors = lSenStates.getNumAct();
-		fout = new DataOutputStream[numSensors + 2]; // One extra for event file. One more for location
+		fout = new DataOutputStream[numSensors + 3]; // One extra for event file. Two more for location & GPS
 		
 		mbtn_event = (Button) findViewById(R.id.EventButton);
 		mbtn_event.setOnClickListener(this);
@@ -137,6 +141,7 @@ public class Main extends Activity implements OnClickListener, SensorEventListen
 				if (lLPStates.getActive(i))
 					lLocMan.requestLocationUpdates(lLPStates.getName(i), lLPStates.getMinTime(i), lLPStates.getMinDist(i), this);
 			}
+			lLocMan.addGpsStatusListener(this);
 		}
 
 	}
@@ -156,6 +161,7 @@ public class Main extends Activity implements OnClickListener, SensorEventListen
 			}
 			lfout[numSensors] = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file_location("_" + "KeyEvent.txt"))));
 			lfout[numSensors+1] = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file_location("_" + "Location.txt"))));
+			lfout[numSensors+2] = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file_location("_" + "GPS.txt"))));
 		}
 	}
 
@@ -190,7 +196,7 @@ public class Main extends Activity implements OnClickListener, SensorEventListen
 	private void close_files() {
 		DataOutputStream[] lfout=fout;
 		
-		for (int i=0;i<(numSensors+2);i++) {
+		for (int i=0;i<(numSensors+3);i++) {
 			if (lfout[i]!=null)
 				try {
 					lfout[i].close();
@@ -318,6 +324,58 @@ public class Main extends Activity implements OnClickListener, SensorEventListen
 
 	public void onStatusChanged(String arg0, int arg1, Bundle arg2) {
 		mLV.addtext(arg0 + " status changed :" + arg1);
+	}
+
+	@Override
+	public void onGpsStatusChanged(int status) {
+
+		DataOutputStream file=fout[numSensors+2];
+		long tim=System.currentTimeMillis() - RefTime;
+		
+		//Get the status
+		GpsStatus lStatus=null;
+		lStatus=mLocMan.getGpsStatus(null);
+		
+		String str = "";
+		
+		if (status==GpsStatus.GPS_EVENT_FIRST_FIX) {
+			mLV.addtext("GPS_EVENT_FIRST_FIX - TTFX ="+  lStatus.getTimeToFirstFix());
+		}
+		else if (status==GpsStatus.GPS_EVENT_STARTED) {
+			mLV.addtext("GPS_EVENT_STARTED "+tim);
+		}
+		else if (status==GpsStatus.GPS_EVENT_STOPPED) {
+			mLV.addtext("GPS_EVENT_STOPPED "+tim);
+		}
+		
+		if (lStatus!=null) {
+			if (file!=null) {
+				try {
+					str = str + tim + "\n";
+					
+					Iterable<GpsSatellite> satlist=lStatus.getSatellites();
+					for (GpsSatellite sat:satlist) {
+						str = str + sat.getPrn() + "\t" +
+								sat.getAzimuth() + "\t" +
+								sat.getElevation() + "\t" +
+								sat.getSnr() + "\t" +
+								sat.hasAlmanac() + "\t" +
+								sat.hasEphemeris() + "\t" +
+								sat.usedInFix() + "\t";
+						
+						if (satlist.iterator().hasNext())
+							str = str + '@';
+						else
+							str = str + '#';
+						str = str + "\n";
+					}
+					file.writeBytes(str + "\n");
+					
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 
 }
