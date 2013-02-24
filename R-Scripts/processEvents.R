@@ -44,6 +44,19 @@ processEvents <- function (x, madparam=10, midval=median(x$n.az), midvalUse=TRUE
   }
   bvec[1] = FALSE
   
+  #Filter to obtain smoother vector.
+  for(i in 11:(length(bvec)-10)) {
+    if(((bvec[i-10] == TRUE)||(bvec[i-9] == TRUE) ||
+          (bvec[i-8] == TRUE)||(bvec[i-7] == TRUE)||(bvec[i-6] == TRUE) ||
+          (bvec[i-5] == TRUE)||(bvec[i-4] == TRUE) ||
+          (bvec[i-3] == TRUE)||(bvec[i-2] == TRUE)||(bvec[i-1] == TRUE)) && 
+        ((bvec[i+10] == TRUE)||(bvec[i+9] == TRUE)||
+          (bvec[i+8] == TRUE)||(bvec[i+7] == TRUE)||(bvec[i+6] == TRUE) ||
+          (bvec[i+5] == TRUE)||(bvec[i+4] == TRUE)||
+          (bvec[i+3] == TRUE)||(bvec[i+2] == TRUE)||(bvec[i+1] == TRUE)))
+    bvec[i] = TRUE;
+  }
+  
   # Return final vector
   return (bvec)
 }

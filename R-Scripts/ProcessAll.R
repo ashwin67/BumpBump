@@ -1,13 +1,12 @@
-# Plot everything about z
-#z <- readSensors('08.18.06.45');  
-#z <- readSensors('08.18.23.06');  
-#z <- readSensors('08.18.57.08');
-z <- readSensors('17.11.25.05');
-bumps <- processEvents(z, madparam=20, midvalUse=TRUE)
+#Read sensors and location values
+s <- readSensors('23.18.10.50'); l <- readLocations('23.18.10.50');
+
+bumps <- processEvents(s, madparam=19, midvalUse=TRUE)
+bumpLocations <- processBumpLocation(bumps, l, s$m.time, tf=40)
 par(mfrow=c(3,2), mar=c(3,2,2,2))
-plot(z$m.time, z$m.ox, type='l', main="orientation along X")
-plot(z$m.time, z$n.ax, type='l', main="acceleration along X")
-plot(z$m.time, z$n.az, type='l', main="acceleration along Z")
-plot(z$m.time, z$m.oz, type='l', main="orientation along Z")
-plot(z$m.time, bumps, type='l', main="Probable Bumps")
-plot(z$m.time, type='l', main="time")
+plot(s$m.time, s$m.ox, type='l', main="orientation along X")
+plot(s$m.time, s$n.ax, type='l', main="acceleration along X")
+plot(s$m.time, s$n.az, type='l', main="acceleration along Z")
+plot(s$m.time, s$m.oz, type='l', main="orientation along Z")
+plot(s$m.time, bumps, type='l', main="Probable Bumps")
+plot(bumpLocations$l.lat, bumpLocations$l.long, main="Bump Locations")
