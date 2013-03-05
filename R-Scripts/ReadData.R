@@ -30,11 +30,15 @@ readData <- function(timeStamp) {
   g.brg <- vector(mode="numeric",length=length(m$time))
   g.spd <- vector(mode="numeric",length=length(m$time))
   
-  j = 1;
+  j <- 1;
   for(i in 1:length(g.alt)) {
+
+    if(j >= length(l$time))
+      break
+    
     while(l$time[j+1] <= l$time[j])
     {
-      j = j + 1
+      j <- j + 1
       if(j > length(l$time))
         break
     }
@@ -45,33 +49,33 @@ readData <- function(timeStamp) {
     distJ <- abs(l$time[j] - m$time[i])
     
     if((distJplus1 < distJ)&&(distJplus1 <= 500)) {
-      g.alt[i] = l$alt[j+1]
-      g.lat[i] = l$lat[j+1]
-      g.lon[i] = l$long[j+1]
-      g.brg[i] = l$brg[j+1]
-      g.spd[i] = l$spd[j+1]
+      g.alt[i] <- l$alt[j+1]
+      g.lat[i] <- l$lat[j+1]
+      g.lon[i] <- l$long[j+1]
+      g.brg[i] <- l$brg[j+1]
+      g.spd[i] <- l$spd[j+1]
     }
     else if((distJplus1 < distJ)&&(distJplus1 > 500)) {
-      g.alt[i] = l$alt[j+1]
-      g.lat[i] = l$lat[j+1]
-      g.lon[i] = l$long[j+1]
-      g.brg[i] = l$brg[j+1]
-      g.spd[i] = l$spd[j+1]
-      j = j + 1
+      g.alt[i] <- l$alt[j+1]
+      g.lat[i] <- l$lat[j+1]
+      g.lon[i] <- l$long[j+1]
+      g.brg[i] <- l$brg[j+1]
+      g.spd[i] <- l$spd[j+1]
+      j <- j + 1
     }
     else if((distJ <= distJplus1)&&(distJ <= 500)) {
-      g.alt[i] = l$alt[j]
-      g.lat[i] = l$lat[j]
-      g.lon[i] = l$long[j]
-      g.brg[i] = l$brg[j]
-      g.spd[i] = l$spd[j]
+      g.alt[i] <- l$alt[j]
+      g.lat[i] <- l$lat[j]
+      g.lon[i] <- l$long[j]
+      g.brg[i] <- l$brg[j]
+      g.spd[i] <- l$spd[j]
     }
     else if((distJ <= distJplus1)&&(distJ > 500)) {
-      g.alt[i] = NA
-      g.lat[i] = NA
-      g.lon[i] = NA
-      g.brg[i] = NA
-      g.spd[i] = NA
+      g.alt[i] <- NA
+      g.lat[i] <- NA
+      g.lon[i] <- NA
+      g.brg[i] <- NA
+      g.spd[i] <- NA
     }
     
     if(j > length(l$time))

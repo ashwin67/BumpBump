@@ -1,5 +1,5 @@
 # Read sensors and location values
-rawData <- readData('01.19.29.28');
+rawData <- readData('04.16.30.52');
 
 # Process the GPS data and discard cases where velocity is clearly high enough for
 # a speed bump to be non-existent. This brings down the number of values that we would have to check
