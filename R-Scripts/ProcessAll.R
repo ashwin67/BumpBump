@@ -1,5 +1,5 @@
 # Read sensors and location values
-rawData <- readData('04.16.30.52');
+rawData <- readData('01.19.29.28');
 
 # Process the GPS data and discard cases where velocity is clearly high enough for
 # a speed bump to be non-existent. This brings down the number of values that we would have to check
@@ -15,8 +15,8 @@ accFinal <- combineAllSensors(accFltDataX, accFltDataZ, rawData, maxTimeMerge=30
 
 # Plot the values on a map
 par(mfrow=c(1,1), mar=c(3,2,2,2))
-plot(rawData$g.lat, rawData$g.lon, type='l', col='blue')
-points(rawData$g.lat[accFinal==TRUE], rawData$g.lon[accFinal==TRUE], col='red', pch=18)
+plot(rawData$g.lon, rawData$g.lat, type='l', col='blue')
+points(rawData$g.lon[accFinal==TRUE], rawData$g.lat[accFinal==TRUE], col='red', pch=18)
 
 #Plot Labels
 text(12.849983003152731, 77.59079661631549, 'nice road', col='black', pos=4, cex=0.7)

@@ -1,5 +1,6 @@
 combineAllSensors <- function(accX, accY, rawDat, maxTimeMerge=3000) {
   accFinal <- accX * accY
+  accFinalN <- vector(mode='logical', length=length(accFinal))
   
   timeDiff <- diff(rawDat$m.time)
   count <- 0     # Holds the total counts since passing a TRUE state
@@ -18,6 +19,7 @@ combineAllSensors <- function(accX, accY, rawDat, maxTimeMerge=3000) {
         #insert TRUE values in between
         for(j in (i-count):i) {
           accFinal[j] <- TRUE
+          accFinalN[j] <- FALSE
         }
       }
       trueState <- 1
@@ -28,7 +30,8 @@ combineAllSensors <- function(accX, accY, rawDat, maxTimeMerge=3000) {
       trueState <- 1
       count <- 0
       timeSum <- 0
+      accFinalN[i] = TRUE
     }
   }
-  return(accFinal)
+  return(accFinalN)
 }

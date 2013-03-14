@@ -85,6 +85,7 @@ readData <- function(timeStamp) {
   x <- data.frame(I(m$time),m$ox,m$oy,m$oz,n$ax,n$ay,n$az,g.alt,g.lat,g.lon,g.brg,g.spd)
   
   x_notNA <- x[!is.na(x$g.alt), ]
+  x_notNZ <- x_notNA[x_notNA$g.lat != 0, ]
   
-  return(x_notNA)
+  return(x_notNZ)
 }
