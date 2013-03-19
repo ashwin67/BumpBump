@@ -16,11 +16,17 @@
     <com.ashwinupadhyaya.bumpbump.CLogView
         android:id="@+id/DLtv1"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
+        android:layout_height="20dp"
         android:layout_alignParentLeft="true"
         android:layout_below="@+id/EventButton"
         android:background="#303030"
         android:scrollbars="vertical" />
+    
+	<fragment
+	    android:id="@+id/map"
+	    android:layout_width="match_parent"
+	    android:layout_height="match_parent"
+	    android:layout_below="@id/DLtv1"
+	    class="com.google.android.gms.maps.SupportMapFragment" />
 
 </RelativeLayout>
