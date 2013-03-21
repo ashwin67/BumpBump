@@ -1,5 +1,5 @@
 # Read sensors and location values
-rawData <- readData('28.16.41.40');
+rawData <- readData('21.22.37.51');
 
 # Process the GPS data and discard cases where velocity is clearly high enough for
 # a speed bump to be non-existent. This brings down the number of values that we would have to check
@@ -7,9 +7,9 @@ gpsSpeedfltData <- processGPSSpeed(rawData, sampLgth=40000/median(diff(rawData$m
 
 # Process acceleration data and find out regions where:
 # 1. Acc-x clearly decreases and then increases
-accFltDataX <- processAcc(rawData$m.ax, gpsWindow=gpsSpeedfltData, sampLgth=500, cutOff=1.1)
+accFltDataX <- processAcc(rawData$m.ax, gpsWindow=gpsSpeedfltData, sampLgth=500, cutOff=1)
 # 2. Acc-z has a large standard deviation
-accFltDataZ <- processAcc(rawData$m.az, gpsWindow=gpsSpeedfltData, sampLgth=300, cutOff=1.1)
+accFltDataZ <- processAcc(rawData$m.az, gpsWindow=gpsSpeedfltData, sampLgth=300, cutOff=1)
 # 3. Process all values together to arrive at final value
 accFinal <- combineAllSensors(accFltDataX, accFltDataZ, rawData, maxTimeMerge=3000)
 
@@ -30,12 +30,12 @@ text(76.6865427434141, 12.416736826107627, 'srirangapattana', col='black', pos=4
 text(76.66100958843643, 12.350410903584846, 'mysore', col='black', pos=1, cex=0.7)
 
 # Plot the Derived values
-sx <- 0.20*length(rawData$m.time) + 1
-ex <- 0.40*length(rawData$m.time)
+sx <- 0*length(rawData$m.time) + 1
+ex <- 1*length(rawData$m.time)
 par(mfrow=c(4,1), mar=c(3,2,2,2))
 plot(rawData$m.time[sx:ex], rawData$g.spd[sx:ex], type='l', main="Velocity")
-plot(rawData$m.time[sx:ex], rawData$m.ax[sx:ex], type='l', main="Raw Acceleration along X")
-plot(rawData$m.time[sx:ex], accFltDataX[sx:ex], type='l', main="Deviation of Acceleration along X was high")
-# plot(rawData$m.time[sx:ex], rawData$m.az[sx:ex], type='l', main="Raw Acceleration along Z")
-# plot(rawData$m.time[sx:ex], accFltDataZ[sx:ex], type='l', main="Deviation of Acceleration along Z was high")
+# plot(rawData$m.time[sx:ex], rawData$m.ax[sx:ex], type='l', main="Raw Acceleration along X")
+# plot(rawData$m.time[sx:ex], accFltDataX[sx:ex], type='l', main="Deviation of Acceleration along X was high")
+plot(rawData$m.time[sx:ex], rawData$m.az[sx:ex], type='l', main="Raw Acceleration along Z")
+plot(rawData$m.time[sx:ex], accFltDataZ[sx:ex], type='l', main="Deviation of Acceleration along Z was high")
 plot(rawData$m.time[sx:ex], accFinal[sx:ex], type='l', main="Possible bumps")

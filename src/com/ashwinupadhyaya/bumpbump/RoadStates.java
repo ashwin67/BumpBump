@@ -1,26 +1,36 @@
 package com.ashwinupadhyaya.bumpbump;
 
-import android.os.Parcel;
-import android.os.Parcelable;
+import java.io.BufferedOutputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.logging.ConsoleHandler;
 
-public class RoadStates implements Parcelable {
+import android.os.Environment;
 
-	private static int locAcc = 20;
+public class RoadStates {
+
+	private static float locAcc = (float)20.0;
 	private static int gpsAccTimDiffMax = 1000;
 	
 	private int totalBumps = 0;
-	private int[] bumpLat = null;
-	private int[] bumpLon = null;
-	private int[] resultTime = null;
 	
 	// GPS variables
 	private long currGpsTime = 0;
 	private float currGpsVel = 0;
-	private float currGpsLat = 0;
-	private float currGpsLon = 0;
+	private double currGpsLat = 0;
+	private double currGpsLon = 0;
+	private static float currGPSacc = 0;
 	
 	// Accelerometer variables
 	private long currAccTime = 0;
+	
+	// Write to file
+	private DataOutputStream fout = null;
 
 	// Accelerometer double sliding window variables
 	private class AccInternals {
@@ -32,35 +42,56 @@ public class RoadStates implements Parcelable {
 		private int accSampLgth;
 		
 		private AccInternals(int sampLgth) {
-			accSampLgth = sampLgth;
+			this.accSampLgth = sampLgth;
+			this.accMean = 0;
+			this.accMeanCount = 0;
+			this.accVar = 0;
+			this.accVarCount = 0;
 		}
 		
 		private void UpdateMeanVar(float acc) {
-			accMean = (accMean * accMeanCount + acc)/(accMeanCount + 1);
-			diffVal = acc - accMean;
+			this.accMean = (this.accMean * this.accMeanCount + acc)/(this.accMeanCount+1);
+			diffVal = acc - this.accMean;
 			
-			if(accVarCount >= 2) {
-				accVar = (diffVal*diffVal + accVar*(accVarCount - 2)) / accVarCount;
+			if(this.accVarCount >= 1) {
+				this.accVar = (diffVal*diffVal + this.accVar*(this.accVarCount - 1)) / (this.accVarCount+1);
 			}
 			else {
-				accVar = (diffVal*diffVal + accVar*(accVarCount - 1)) / accVarCount;
+				this.accVar = (diffVal*diffVal + this.accVar*this.accVarCount) / (this.accVarCount+1);
 			}
 			
-			if(accMeanCount < accSampLgth) {
-				accMeanCount++;
-				accVarCount++;
+			if(this.accMeanCount < this.accSampLgth) {
+				this.accMeanCount++;
+				this.accVarCount++;
 			}
+			
 		}
 		
 		private void InitializeVars(float mVal, int mCnt, float vVal, int vCnt) {
-			accMean = mVal;
-			accMeanCount = mCnt;
-			accVar = vVal;
-			accVarCount = vCnt;
+			this.accMean = mVal;
+			this.accMeanCount = mCnt;
+			this.accVar = vVal;
+			this.accVarCount = vCnt;
 		}
 		
 		private float getSD() {
-			return (float)(Math.sqrt((double)accVar));
+			return (float)(Math.sqrt((double)this.accVar));
+		}
+		
+		private int getAccCount() {
+			return this.accMeanCount;
+		}
+		
+		private float getAccVal() {
+			return this.accMean;
+		}
+		
+		private int getVarCount() {
+			return this.accVarCount;
+		}
+		
+		private float getVarVal() {
+			return this.accVar;
 		}
 	}
 	
@@ -79,22 +110,26 @@ public class RoadStates implements Parcelable {
 	// Constructor for the class.
 	// 1. lAcc = Location accuracy to be considered
 	// 2. gpsAccDiff = Maximum time to consider for GPS data interpolation (to match with Acc data)
-	public RoadStates(int lAcc, int gpsAccDiff, int gpsSampLength, float gpsCOff,
+	public RoadStates(float lAcc, int gpsAccDiff, int gpsSampLength, float gpsCOff,
 			float cOx, float cOz) {
 		locAcc = lAcc;
 		gpsAccTimDiffMax = gpsAccDiff;
 		gpsSampLgth = gpsSampLength;
 		gpsCutOff = gpsCOff;
 		axS = new AccInternals(500);
-		axL = new AccInternals(0xFFFFFFFF);
+		axL = new AccInternals(0x7FFFFFFF);
 		azS = new AccInternals(300);
-		azL = new AccInternals(0xFFFFFFFF);
+		azL = new AccInternals(0x7FFFFFFF);
 		accCutOffX = cOx;
 		accCutOffZ = cOz;
+		
 	}
 	
 	// Update the GPS information
-	public void UpdateGPSInfo(int gpsAcc, long gpsTime, float gpsVel, float gpsLat, float gpsLon) {
+	public void UpdateGPSInfo(float gpsAcc, long gpsTime, float gpsVel, double gpsLat, double gpsLon) {
+		
+		currGPSacc = gpsAcc;
+		
 		// Consider data only if the accuracy is good
 		if((gpsAcc < locAcc) && (gpsTime > currGpsTime)){
 			currGpsTime = gpsTime;
@@ -125,6 +160,8 @@ public class RoadStates implements Parcelable {
 
 	// Update the Accelerometer information	
 	public void UpdateAccelerometerInfo(long accTime, float accX, float accZ) {
+		
+		Boolean bumpDetected = false;
 		// Consider the data only if there is a GPS data also close by. Else, discard.
 		if(((accTime-currGpsTime) <= gpsAccTimDiffMax) && 
 				(accTime >= currAccTime) && (accTime >= currGpsTime)) {
@@ -137,6 +174,7 @@ public class RoadStates implements Parcelable {
 				// If both Z and X standard deviation are high, then this must be a bump
 				if((azS.getSD() > accCutOffZ*azL.getSD()) && (axS.getSD() > accCutOffX*axL.getSD())) {
 					// Bump Detected!!
+					bumpDetected = true;
 				}
 			}
 			// Following calculations will give an estimate of noise in the system (at normal speeds)
@@ -144,19 +182,37 @@ public class RoadStates implements Parcelable {
 				axL.UpdateMeanVar(accX);
 				azL.UpdateMeanVar(accZ);
 				
-				axS.InitializeVars(axL.accMean, axL.accMeanCount, axL.accVar, axL.accVarCount);
-				azS.InitializeVars(azL.accMean, azL.accMeanCount, azL.accVar, azL.accVarCount);
+				axS.InitializeVars(axL.getAccVal(), axL.getAccCount(), axL.getVarVal(), axL.getVarCount());
+				azS.InitializeVars(azL.getAccVal(), azL.getAccCount(), azL.getVarVal(), azL.getVarCount());
 			}
+		}
+		try {
+			fout.writeBytes("" + currGPSacc + " " + accTime + " " + currGpsTime + " " + currAccTime + 
+					" " + axL.getVarVal() + " " + azL.getVarVal() + " " + axL.getAccVal() +	
+					" " + azL.getAccVal() + " " + currGpsLat + " " + currGpsLon + 
+					" " + bumpDetected + "\n");
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 	
-	@Override
-	public int describeContents() {
-		return 0;
+	// Get latitude and longitude of bump
+	
+	// Create file
+	public void open_files(FileOutputStream fo) throws FileNotFoundException{
+		fout = new DataOutputStream(new BufferedOutputStream(fo));
+		try {
+			fout.writeBytes("## Bump Latitude and Longitude\n");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
+	
+	public void close_files() {
 
-	@Override
-	public void writeToParcel(Parcel dest, int flags) {
+		try {
+			fout.close();
+		} catch (IOException e) {
+		}
 	}
-
 }

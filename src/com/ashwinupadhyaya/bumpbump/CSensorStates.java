@@ -72,7 +72,7 @@ public class CSensorStates  implements Parcelable {
 					break;
 				case (Sensor.TYPE_ORIENTATION):
 					names[i]="ORIENTATION";
-					act_list[i]=true;
+					act_list[i]=false;
 					break;
 				case (Sensor.TYPE_PRESSURE):
 					names[i]="PRESSURE";

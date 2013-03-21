@@ -39,23 +39,16 @@ import android.support.v4.app.FragmentActivity;
 public class Main extends FragmentActivity implements OnClickListener, SensorEventListener, LocationListener, Listener{
 
 	private GoogleMap mMap;
-	
-	RoadStates rStates;
-	
+	static RoadStates rStates;
 	CSensorStates mSenStates;
 	CLocProvStates mLPStates;
-	
 	SensorManager mSenMan;
 	LocationManager mLocMan;
-
 	static int numSensors = 0;
-	
 	CLogView mLV;
 	int evno=0;
-	
 	static long RefTime=-1;
 	Button mbtn_event;
-	
 	private DataOutputStream[] fout = null; 
 	private SimpleDateFormat dtf= new SimpleDateFormat("dd.HH.mm.ss");
 	
@@ -78,16 +71,16 @@ public class Main extends FragmentActivity implements OnClickListener, SensorEve
 
 		mLPStates = new CLocProvStates(lLocMan.getAllProviders());
 		CLocProvStates lLPStates=mLPStates;
-
 		
 		numSensors = lSenStates.getNumAct();
-		fout = new DataOutputStream[numSensors + 3]; // One extra for event file. Two more for location & GPS
+		fout = new DataOutputStream[numSensors + 2]; // One extra for event file. One more for location
 		
 		mbtn_event = (Button) findViewById(R.id.EventButton);
 		mbtn_event.setOnClickListener(this);
 		
 		setUpMapIfNeeded();
-
+		
+		rStates = new RoadStates((float)20.0, 1000, 100, (float)0.75, (float)1.1, (float)1.1);
 	}
 
 	@Override
@@ -172,7 +165,6 @@ public class Main extends FragmentActivity implements OnClickListener, SensorEve
 			}
 			lfout[numSensors] = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file_location("_" + "KeyEvent.txt"))));
 			lfout[numSensors+1] = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file_location("_" + "Location.txt"))));
-			lfout[numSensors+2] = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file_location("_" + "GPS.txt"))));
 		}
 	}
 
@@ -207,7 +199,7 @@ public class Main extends FragmentActivity implements OnClickListener, SensorEve
 	private void close_files() {
 		DataOutputStream[] lfout=fout;
 		
-		for (int i=0;i<(numSensors+3);i++) {
+		for (int i=0;i<(numSensors+2);i++) {
 			if (lfout[i]!=null)
 				try {
 					lfout[i].close();
@@ -215,6 +207,8 @@ public class Main extends FragmentActivity implements OnClickListener, SensorEve
 					mLV.addtext("File close error :" + i);
 				}
 		}
+		
+		rStates.close_files();
 	}
 	
 	@Override
@@ -238,15 +232,8 @@ public class Main extends FragmentActivity implements OnClickListener, SensorEve
 		
 		int len=ev.values.length;
 		long tim=System.currentTimeMillis() - RefTime;
-//		long tim = ev.timestamp;
 		String str = "";
 		try {
-//			file.writeInt(ev.sensor.getType());
-//			file.writeLong(tim);
-//			file.writeLong(ev.timestamp);
-//			file.writeInt(len);
-//			for (int i=0;i<len;i++)
-//				file.writeFloat(ev.values[i]);
 			str = str + ev.sensor.getType() + "\t" + 
 					tim + "\t" + len + "\t";
 			for (int i=0;i<len;i++)
@@ -255,6 +242,8 @@ public class Main extends FragmentActivity implements OnClickListener, SensorEve
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
+		rStates.UpdateAccelerometerInfo(tim, ev.values[0], ev.values[2]);
 	}
 
 	@Override
@@ -266,6 +255,9 @@ public class Main extends FragmentActivity implements OnClickListener, SensorEve
 			{
 				RefTime = System.currentTimeMillis();
 				try {
+					FileOutputStream fos = new FileOutputStream(file_location("_" + "LatLong.txt"));
+					rStates.open_files(fos);
+					
 					open_files();
 					register_listeners();
 					mLV.addtext("Started Logging");
@@ -273,7 +265,7 @@ public class Main extends FragmentActivity implements OnClickListener, SensorEve
 					mLV.addtext("File open error: Probably you do not have require permissions.");
 					stop_recording();
 				}
-				
+
 				file=fout[numSensors];
 				
 				if (file!=null) {
@@ -323,70 +315,26 @@ public class Main extends FragmentActivity implements OnClickListener, SensorEve
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
+		rStates.UpdateGPSInfo(loc.getAccuracy(), tim, loc.getSpeed(), 
+				loc.getLatitude(), loc.getLongitude());
 	}
 
 	public void onProviderDisabled(String arg0) {
-		mLV.addtext(arg0 + " provider disabled");
+		
 	}
 
 	public void onProviderEnabled(String arg0) {
-		mLV.addtext(arg0 + " provider enabled");
+		
 	}
 
 	public void onStatusChanged(String arg0, int arg1, Bundle arg2) {
-		mLV.addtext(arg0 + " status changed :" + arg1);
+		
 	}
 
 	@Override
 	public void onGpsStatusChanged(int status) {
 
-		DataOutputStream file=fout[numSensors+2];
-		long tim=System.currentTimeMillis() - RefTime;
-		
-		//Get the status
-		GpsStatus lStatus=null;
-		lStatus=mLocMan.getGpsStatus(null);
-		
-		String str = "";
-		
-		if (status==GpsStatus.GPS_EVENT_FIRST_FIX) {
-			mLV.addtext("GPS_EVENT_FIRST_FIX - TTFX ="+  lStatus.getTimeToFirstFix());
-		}
-		else if (status==GpsStatus.GPS_EVENT_STARTED) {
-			mLV.addtext("GPS_EVENT_STARTED "+tim);
-		}
-		else if (status==GpsStatus.GPS_EVENT_STOPPED) {
-			mLV.addtext("GPS_EVENT_STOPPED "+tim);
-		}
-		
-		if (lStatus!=null) {
-			if (file!=null) {
-				try {
-					str = str + tim + "\n";
-					
-					Iterable<GpsSatellite> satlist=lStatus.getSatellites();
-					for (GpsSatellite sat:satlist) {
-						str = str + sat.getPrn() + "\t" +
-								sat.getAzimuth() + "\t" +
-								sat.getElevation() + "\t" +
-								sat.getSnr() + "\t" +
-								sat.hasAlmanac() + "\t" +
-								sat.hasEphemeris() + "\t" +
-								sat.usedInFix() + "\t";
-						
-						if (satlist.iterator().hasNext())
-							str = str + '@';
-						else
-							str = str + '#';
-						str = str + "\n";
-					}
-					file.writeBytes(str + "\n");
-					
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
 	}
 
     /**
