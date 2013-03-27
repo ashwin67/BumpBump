@@ -1,5 +1,5 @@
 # Read sensors and location values
-rawData <- readData('21.22.37.51');
+rawData <- readData('01.19.29.28');
 
 # Process the GPS data and discard cases where velocity is clearly high enough for
 # a speed bump to be non-existent. This brings down the number of values that we would have to check
@@ -12,6 +12,10 @@ accFltDataX <- processAcc(rawData$m.ax, gpsWindow=gpsSpeedfltData, sampLgth=500,
 accFltDataZ <- processAcc(rawData$m.az, gpsWindow=gpsSpeedfltData, sampLgth=300, cutOff=1)
 # 3. Process all values together to arrive at final value
 accFinal <- combineAllSensors(accFltDataX, accFltDataZ, rawData, maxTimeMerge=3000)
+
+# Get latitude and longitude of the points where road anomaly might exist!
+lat2 <- rawData$g.lat[accFinal==TRUE]
+lon2 <- rawData$g.lon[accFinal==TRUE]
 
 # Plot the values on a map
 par(mfrow=c(1,1), mar=c(3,2,2,2))
